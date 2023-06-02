@@ -72,6 +72,22 @@ function nightCost(age, result) {
   }
 }
 
+async function computeCost(age, type, connection: Connection, date, result) {
+  let cost = {cost: 0};
+  if (age as any < 6) {
+    return {cost: 0}
+  } else {
+    if (type !== 'night') {
+      const holidays = await getHolidays(connection);
+      let isHoliday = isDateHoliday(holidays, date);
+      const reduction = computeReduction(isHoliday, date);
+      return dayCost(age, result, reduction);
+    } else {
+      return nightCost(age, result);
+    }
+  }
+}
+
 async function createApp() {
   const app = express()
 
@@ -95,19 +111,10 @@ async function createApp() {
 
     const result = await getBasePriceByType(connection, type)
 
-    let cost = {cost: 0};
-    if (age as any < 6) {
-      cost = {cost: 0}
-    } else {
-      if (type !== 'night') {
-        const holidays = await getHolidays(connection);
-        let isHoliday = isDateHoliday(holidays, date);
-        const reduction = computeReduction(isHoliday, date);
-        cost = dayCost(age, result, reduction);
-      } else {
-        cost = nightCost(age, result);
-      }
-    }
+
+    let cost = await computeCost(age, type, connection, date, result);
+
+
     res.json(cost);
   })
   return {app, connection}
