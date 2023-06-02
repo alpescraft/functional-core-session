@@ -33,6 +33,45 @@ function isDateHoliday(holidays: any[], date) {
   return isHoliday;
 }
 
+function computeReduction(isHoliday, date) {
+  let reduction = 0
+  if (!isHoliday && new Date(date as string).getDay() === 1) {
+    reduction = 35
+  }
+  return reduction;
+}
+
+function dayCost(age, result, reduction: number) {
+  if (age as any < 15) {
+    return {cost: Math.ceil(result.cost * .7)}
+  } else {
+    if (age === undefined) {
+      let cost2 = result.cost * (1 - reduction / 100)
+      return {cost: Math.ceil(cost2)}
+    } else {
+      if (age as any > 64) {
+        let cost2 = result.cost * .75 * (1 - reduction / 100)
+        return {cost: Math.ceil(cost2)}
+      } else {
+        let cost2 = result.cost * (1 - reduction / 100)
+        return {cost: Math.ceil(cost2)}
+      }
+    }
+  }
+}
+
+function nightCost(age, result) {
+  if (age as any >= 6) {
+    if (age as any > 64) {
+      return {cost: Math.ceil(result.cost * .4)}
+    } else {
+      return result
+    }
+  } else {
+    return {cost: 0}
+  }
+}
+
 async function createApp() {
   const app = express()
 
@@ -62,41 +101,11 @@ async function createApp() {
     } else {
       if (type !== 'night') {
         const holidays = await getHolidays(connection);
-
         let isHoliday = isDateHoliday(holidays, date);
-
-        let reduction = 0
-        if (!isHoliday && new Date(date as string).getDay() === 1) {
-          reduction = 35
-        }
-
-        // TODO apply reduction for others
-        if (age as any < 15) {
-          cost = {cost: Math.ceil(result.cost * .7)}
-        } else {
-          if (age === undefined) {
-            let cost2 = result.cost * (1 - reduction / 100)
-            cost = {cost: Math.ceil(cost2)}
-          } else {
-            if (age as any > 64) {
-              let cost2 = result.cost * .75 * (1 - reduction / 100)
-              cost = {cost: Math.ceil(cost2)}
-            } else {
-              let cost2 = result.cost * (1 - reduction / 100)
-              cost = {cost: Math.ceil(cost2)}
-            }
-          }
-        }
+        const reduction = computeReduction(isHoliday, date);
+        cost = dayCost(age, result, reduction);
       } else {
-        if (age as any >= 6) {
-          if (age as any > 64) {
-            cost = {cost: Math.ceil(result.cost * .4)}
-          } else {
-            cost = result
-          }
-        } else {
-          cost = {cost: 0}
-        }
+        cost = nightCost(age, result);
       }
     }
     res.json(cost);
