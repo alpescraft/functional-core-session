@@ -41,7 +41,21 @@ function computeReduction(isHoliday, date) {
   return reduction;
 }
 
-function dayCost(age, result, reduction: number) {
+function nightCost(age, result) {
+  if (age as any >= 6) {
+    if (age as any > 64) {
+      return {cost: Math.ceil(result.cost * .4)}
+    } else {
+      return result
+    }
+  } else {
+    return {cost: 0}
+  }
+}
+
+function dayCost(holidays: RowDataPacket[], date, age, result) {
+  const isHoliday = isDateHoliday(holidays, date);
+  const reduction = computeReduction(isHoliday, date);
   if (age as any < 15) {
     return {cost: Math.ceil(result.cost * .7)}
   } else {
@@ -60,28 +74,15 @@ function dayCost(age, result, reduction: number) {
   }
 }
 
-function nightCost(age, result) {
-  if (age as any >= 6) {
-    if (age as any > 64) {
-      return {cost: Math.ceil(result.cost * .4)}
-    } else {
-      return result
-    }
-  } else {
-    return {cost: 0}
-  }
-}
-
-async function computeCost(age, type, connection: Connection, date, result) {
+async function computeCost(age, type, connection: Connection, date) {
+  const result = await getBasePriceByType(connection, type)
   let cost = {cost: 0};
   if (age as any < 6) {
     return {cost: 0}
   } else {
     if (type !== 'night') {
       const holidays = await getHolidays(connection);
-      let isHoliday = isDateHoliday(holidays, date);
-      const reduction = computeReduction(isHoliday, date);
-      return dayCost(age, result, reduction);
+      return dayCost(holidays, date, age, result);
     } else {
       return nightCost(age, result);
     }
@@ -109,10 +110,8 @@ async function createApp() {
     const age = req.query.age;
     const date = req.query.date;
 
-    const result = await getBasePriceByType(connection, type)
 
-
-    let cost = await computeCost(age, type, connection, date, result);
+    let cost = await computeCost(age, type, connection, date);
 
 
     res.json(cost);
