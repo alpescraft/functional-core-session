@@ -50,54 +50,56 @@ async function createApp() {
     res.json()
   })
   app.get('/prices', async (req, res) => {
-    let type = req.query.type;
-    let age = req.query.age;
-    let date = req.query.date;
+    const type = req.query.type;
+    const age = req.query.age;
+    const date = req.query.date;
 
     const result = await getBasePriceByType(connection, type)
 
+    let cost = {cost: 0};
     if (age as any < 6) {
-      res.json({cost: 0})
+      cost = {cost: 0}
     } else {
       if (type !== 'night') {
         const holidays = await getHolidays(connection);
 
-        let reduction = 0
         let isHoliday = isDateHoliday(holidays, date);
 
+        let reduction = 0
         if (!isHoliday && new Date(date as string).getDay() === 1) {
           reduction = 35
         }
 
         // TODO apply reduction for others
         if (age as any < 15) {
-          res.json({cost: Math.ceil(result.cost * .7)})
+          cost = {cost: Math.ceil(result.cost * .7)}
         } else {
           if (age === undefined) {
-            let cost = result.cost * (1 - reduction / 100)
-            res.json({cost: Math.ceil(cost)})
+            let cost2 = result.cost * (1 - reduction / 100)
+            cost = {cost: Math.ceil(cost2)}
           } else {
             if (age as any > 64) {
-              let cost = result.cost * .75 * (1 - reduction / 100)
-              res.json({cost: Math.ceil(cost)})
+              let cost2 = result.cost * .75 * (1 - reduction / 100)
+              cost = {cost: Math.ceil(cost2)}
             } else {
-              let cost = result.cost * (1 - reduction / 100)
-              res.json({cost: Math.ceil(cost)})
+              let cost2 = result.cost * (1 - reduction / 100)
+              cost = {cost: Math.ceil(cost2)}
             }
           }
         }
       } else {
         if (age as any >= 6) {
           if (age as any > 64) {
-            res.json({cost: Math.ceil(result.cost * .4)})
+            cost = {cost: Math.ceil(result.cost * .4)}
           } else {
-            res.json(result)
+            cost = result
           }
         } else {
-          res.json({cost: 0})
+          cost = {cost: 0}
         }
       }
     }
+    res.json(cost);
   })
   return {app, connection}
 }
