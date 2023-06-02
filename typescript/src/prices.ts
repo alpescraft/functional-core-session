@@ -75,16 +75,25 @@ function nightCost(age, result) {
 async function computeCost(age, type, connection: Connection, date, result) {
   let cost = {cost: 0};
   if (age as any < 6) {
-    return {cost: 0}
-  } else {
-    if (type !== 'night') {
-      const holidays = await getHolidays(connection);
-      let isHoliday = isDateHoliday(holidays, date);
-      const reduction = computeReduction(isHoliday, date);
-      return dayCost(age, result, reduction);
-    } else {
-      return nightCost(age, result);
+    return {
+      dataRequest: () => {},
+      compute: () => {return {cost: 0}},
     }
+
+  }
+  if (type !== 'night') {
+    return {
+      dataRequest: async () => {
+        return getHolidays(connection)
+      },
+      compute: (holidays) => {
+        let isHoliday = isDateHoliday(holidays, date);
+        const reduction = computeReduction(isHoliday, date);
+        return dayCost(age, result, reduction);
+      },
+    }
+  } else {
+    return nightCost(age, result);
   }
 }
 
